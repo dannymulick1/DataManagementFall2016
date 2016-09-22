@@ -14,12 +14,14 @@ where quantity > 201000;
 
 #query for number 4
 Select name, city
-from customers;
+from customers
+where city = 'Duluth';
 
 #query for number 5
 select name
 from agents
-where city != 'Dallas' and city != 'Duluth';
+where city != 'Dallas' 
+  and city != 'Duluth';
 
 #query for number 6
 select *
