@@ -39,4 +39,3 @@ language plpgsql;
 select IsPreReqFor(221, 'results');
 fetch all from results;
 
---Demonstrate Jedi-level skills and write a third, recursive, function that takes a passed-in course number and generates all of its prerequisites. Uses the first two functions you wrote and recursion.
