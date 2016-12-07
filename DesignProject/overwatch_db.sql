@@ -22,11 +22,19 @@ drop table if exists teams;
 drop table if exists people;
 
 
+-- creating a new type for the type of ability, ultimate vs basic
+drop type if exists abilType;
+create type abilType as enum ('Basic', 'Ultimate');
+
+--create statement for hero type, as referenced in heroes table
+drop type if exists role cascade;
+create type role as enum ('Offense', 'Defense', 'Tank', 'Support');
+
 --create statements for the database's tables
 create table people(
 	pid           char(4)    primary key,
-	fname         char(20)   not null,
-	lname         char(20)   not null,
+	fName         char(20)   not null,
+	lName         char(20)   not null,
 	email         Char(20)   not null,
 	battleTag     char(20)   not null
 );
@@ -66,12 +74,11 @@ create table teamsInMatches(
 	primary key   (teamID, matchID)
 );
 
---create statement for hero type, as referenced in heroes table
-drop type if exists role;
-create type role as enum ('Offense', 'Defense', 'Tank', 'Support');
-
 create table heroes(
 	heroID        char(4)    not null primary key,
+	heroName      char(15)   not null,
+	fName         char(15)   ,
+	lName         char(15)   ,
 	health        int        not null,
 	shields       int        ,
 	armor         int        ,
@@ -104,11 +111,6 @@ create table weapons(
 	primary key   (weaponID, heroID)
 );
 
--- creating a new type for the type of ability, ultimate vs basic
-drop type if exists abilType;
-create type abilType as enum ('Basic', 'Ultimate');
-
-
 create table abilities(
 	abilityID     char(4)    not null,
 	heroID        char(4)    not null references heroes(heroID),
@@ -125,3 +127,73 @@ create table abilities(
 	primary key (abilityID, heroID)
 );
 
+
+-- stored procedure used to insert heroes into their table
+create or replace function insertHero(char(4), char(15), char(15), char(15), int, int, int, char(20), role, char(10)) returns void
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _heroID      char(4)   := $1;
+   _heroName    char(15)  := $2;
+   _FName       char(15)  := $3;
+   _LName       char(15)  := $4;
+   _health      int       := $5;
+   _shields     int       := $6;
+   _armor       int       := $7;
+   _nationality char(20)  := $8;
+   _role        role      := $9;
+   _heroType    char(10)  := $10;
+begin
+   insert into heroes (heroId, heroName, fName, lName, health, shields, armor, nationality, role, heroType)
+   values (_heroID, _heroName, _fName, _lName, _health, _shields, _armor, _nationality, _role, _heroType);
+end;
+$$ 
+language plpgsql;
+
+-- 23 heroes total
+select * from insertHero('H001', 'Genji',        'Genji',   'Shamada',  200, 0, 0, 'Japanese', 'Offense', '');
+select * from insertHero('H002', 'McCree',       'Jesse',   'Mecree',   200, 0, 0, 'American', 'Offense', '');
+select * from insertHero('H003', 'Pharah',       'Fareeha', 'Amari',    200, 0, 0, 'Egyptian', 'Offense', '');
+select * from insertHero('H004', 'Reaper',       'Gabriel', 'Reyes',    250, 0, 0, 'American', 'Offense', '');
+select * from insertHero('H005', 'Soldier: 76',  'Jack',    'Morrison', 200, 0, 0, 'American', 'Offense', '');
+select * from insertHero('H006', 'Sombra',       '',        '',         200, 0, 0, 'Mexican',  'Offense', '');
+select * from insertHero('H007', 'Tracer',       'Lena',    'Oxford', , , , '', 'Offense', '');
+select * from insertHero('H008', '', '', '', , , , '', '', '');
+select * from insertHero('H009', '', '', '', , , , '', '', '');
+select * from insertHero('H010', '', '', '', , , , '', '', '');
+select * from insertHero('H011', '', '', '', , , , '', '', '');
+select * from insertHero('H012', '', '', '', , , , '', '', '');
+select * from insertHero('H013', '', '', '', , , , '', '', '');
+select * from insertHero('H014', '', '', '', , , , '', '', '');
+select * from insertHero('H015', '', '', '', , , , '', '', '');
+select * from insertHero('H016', '', '', '', , , , '', '', '');
+select * from insertHero('H017', '', '', '', , , , '', '', '');
+select * from insertHero('H018', '', '', '', , , , '', '', '');
+select * from insertHero('H019', '', '', '', , , , '', '', '');
+select * from insertHero('H020', '', '', '', , , , '', '', '');
+select * from insertHero('H021', '', '', '', , , , '', '', '');
+select * from insertHero('H022', '', '', '', , , , '', '', '');
+select * from insertHero('H023', '', '', '', , , , '', '', '');
+
+
+select * from heroes;
+/*
+Model for functions
+create or replace function (int, REFCURSOR) returns refcursor 
+as 
+$$
+declare
+   inputCourse int       := $1;
+     resultset REFCURSOR := $2;
+begin
+   open resultset for 
+      select prereqnum
+        from prerequisites
+       where courseNum = inputCourse;
+   return resultset;
+end;
+$$ 
+language plpgsql;
+*/
