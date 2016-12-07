@@ -19,12 +19,8 @@ drop table if exists players;
 drop table if exists teams;
 drop table if exists people;
 
-
--- creating a new type for the type of ability, ultimate vs basic
-drop type if exists abilType;
-create type abilType as enum ('Basic', 'Ultimate');
-
 --create statement for hero type, as referenced in heroes table
+
 drop type if exists role cascade;
 create type role as enum ('Offense', 'Defense', 'Tank', 'Support');
 
@@ -33,13 +29,15 @@ create table people(
 	pid           char(4)    primary key,
 	fName         char(20)   not null,
 	lName         char(20)   not null,
-	email         Char(20)   not null,
-	battleTag     char(20)   not null
+	email         Char(30)   not null,
+	battleTag     char(20)   not null,
+	regDate       date       not null
 );
 
 create table teams(
 	teamID        char(4)    not null primary key,
-	teamName      char(30)   not null
+	teamName      char(30)   not null,
+	regDate       date       not null
 );
 
 create table players(
@@ -50,13 +48,13 @@ create table players(
 
 create table officials(
 	officialID    char(4)    not null primary key references people(pid),
-	regDate       date       not null
+	judgeLevel    int        not null
 );
 
 create table maps(
 	mapID         char(4)    not null primary key,
-	mapName       char(20)   not null,
-	location      char(20)
+	mapName       char(30)   not null,
+	location      char(30)
 );
 
 create table matches(
@@ -97,6 +95,159 @@ create table heroesInMatches(
 );
 
 
+-- stored procedure used to insert people into their table
+create or replace function insertPerson(char(4), char(20), char(20), char(30), char(20), date) returns void
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _pid       char(4)      :=$1;
+   _fName     char(20)     :=$2;
+   _lName     char(20)     :=$3;
+   _email     char(30)     :=$4;
+   _battleTag char(20)     :=$5;
+   _regDate   date         :=$6;
+begin
+   insert into people (pid, fName, lName, email, battleTag, regDate)
+   values (_pid, _fName, _lName, _email, _battleTag, _regDate);
+end;
+$$ 
+language plpgsql;
+
+select * from insertPerson('P001', 'Mark',      'Hanson',    'mhanson@gmail.com',       'Handson#6364',    '2015-07-06');
+select * from insertPerson('P002', 'John',      'Jacobs',    'jj332@gmail.com',         'JayJay#9909',     '2015-07-06');
+select * from insertPerson('P003', 'Paul',      'Saunders',  'pauls4@gmail.com',        'pjsalt32#1115',   '2015-07-06');
+select * from insertPerson('P004', 'Juli',      'Peters',    'jpeters@gmail.com',       'majorPete#4412',  '2015-07-06');
+select * from insertPerson('P005', 'Anna',      'Black',     'blacka@aol.com',          'superNero#6522',  '2015-07-06');
+select * from insertPerson('P006', 'Christian', 'Noel',      'noels@gmail.com',         'neverNoel#7776',  '2015-07-06');
+select * from insertPerson('P007', 'Alan',      'Labouseur', 'alan@labouseur.com',      'alan#1337',       '2015-07-06');
+select * from insertPerson('P008', 'Thomas',    'Famularo',  'tom.fam@marist.edu',      'nPPredator#1100', '2015-07-06');
+select * from insertPerson('P009', 'Jack',      'Wilson',    'wileyj@gmail.com',        'KcajWils#1213',   '2015-08-09');
+select * from insertPerson('P010', 'Alex',      'Burns',     'burner@aol.com',          'Burny#4445',      '2015-08-10');
+select * from insertPerson('P011', 'Lauren',    'Rannet',    'Laurannet@gmail.com',     'Rannit#7472',     '2015-08-16');
+select * from insertPerson('P012', 'Peter',     'Parker',    'petep@gmail.com',         'Spooder#3332',    '2015-11-20');
+select * from insertPerson('P013', 'Dennis',    'Murray',    'djm@marist.edu',          'DJMaster#4123',   '2015-12-26');
+select * from insertPerson('P014', 'Daniel',    'Zhang',     'daniel.zhang@marist.edu', 'zhanged#0012',    '2016-12-30');
+select * from insertPerson('P015', 'Gary',      'Amaz',      'amaz@battle.net',         'amaz7#1544',      '2016-01-06');
+select * from insertPerson('P016', 'Max',       'Levitt',    'maxlev@gmail.com',        'maxlevel#1412',   '2016-01-08');
+select * from insertPerson('P017', 'Carly',     'Rae',       'raecee@gmail.com',        'raycee#7784',     '2016-01-08');
+select * from insertPerson('P018', 'Nick',      'Soun',      'nick.soun1@marist.edu',   'souns#9016',      '2016-01-15');
+select * from insertPerson('P019', 'Tony',      'Redson',    'redTon@gmail.com',        'redz#2232',       '2016-01-30');
+select * from insertPerson('P020', 'Mark',      'Shlep',     'mark.shlep@ualbany.edu',  'shlepper#8745',   '2016-02-09');
+
+-- stored procedure used to insert officials into their table
+create or replace function insertOfficial(char(4), int) returns void
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _officialID  char(4)   :=$1;
+   _judgeLevel  int  :=$2;
+begin
+   insert into officials (officialID, judgeLevel)
+   values (_officialID, _judgeLevel);
+end;
+$$ 
+language plpgsql;
+
+select * from insertOfficial('P007', 5);
+select * from insertOfficial('P020', 2);
+select * from insertOfficial('P012', 1);
+
+
+-- stored procedure used to insert teams into their table
+create or replace function insertTeam(char(4), char(30), date) returns void
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _teamID   char(4)   :=$1;
+   _teamName char(30)  :=$2;
+   _regDate  date      :=$3;
+begin
+   insert into teams (teamID, teamName, regDate)
+   values (_teamID, _teamName, _regDate);
+end;
+$$ 
+language plpgsql;
+
+select * from insertTeam('T001', 'Team Liquid', '2015-07-06');
+select * from insertTeam('T002', 'TSM',         '2015-07-06');
+select * from insertTeam('T003', 'Fnatic',      '2015-07-06');
+select * from insertTeam('T004', 'Cloud9',      '2015-08-11');
+select * from insertTeam('T005', 'Dignitas',    '2015-11-23');
+
+-- stored procedure used to insert players into their table
+create or replace function insertPlayer(char(4), int, char(4)) returns void
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _playerID    char(4)    :=$1;
+   _hoursPlayed int        :=$2;
+   _team        char(4)    :=$3;
+begin
+   insert into players (playerID, hoursPlayed, team)
+   values (_playerID, _hoursPlayed, _team);
+end;
+$$ 
+language plpgsql;
+
+select * from insertPlayer('P008', 20, 'T002');
+select * from insertPlayer('P006', 10, 'T001');
+select * from insertPlayer('P001', 10, 'T002');
+select * from insertPlayer('P002', 16, 'T003');
+select * from insertPlayer('P003', 8, 'T002');
+select * from insertPlayer('P005', 7, 'T002');
+select * from insertPlayer('P004', 4, 'T001');
+select * from insertPlayer('P011', 19, 'T001');
+select * from insertPlayer('P015', 22, 'T003');
+select * from insertPlayer('P009', 27, 'T003');
+select * from insertPlayer('P010', 5, 'T001');
+select * from insertPlayer('P018', 16, 'T003');
+select * from insertPlayer('P019', 40, 'T005');
+select * from insertPlayer('P014', 60, 'T005');
+select * from insertPlayer('P017', 45, 'T005');
+select * from insertPlayer('P016', 32, 'T005');
+
+-- stored procedure used to insert maps into their table
+create or replace function insertMap(char(4), char(30), char(30)) returns void
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _mapID         char(4)   :=$1;
+   _mapName       char(30)  :=$2;
+   _location      char(30)  :=$3;
+begin
+   insert into maps (mapID, mapName, location)
+   values (_mapID, _mapName, _location);
+end;
+$$ 
+language plpgsql;
+
+-- 14 total maps currently
+select * from insertMap('MP01', 'Hanamura',              'Japan');
+select * from insertMap('MP02', 'Temple of Anubis',      'Egypt');
+select * from insertMap('MP03', 'Volskaya Industries',   'Russia');
+select * from insertMap('MP04', 'Dorado',                'Mexico');
+select * from insertMap('MP05', 'Watchpoint: Gibraltar', 'Gibraltar');
+select * from insertMap('MP06', 'Route 66',              'United States');
+select * from insertMap('MP07', 'Kings Row',             'England');
+select * from insertMap('MP08', 'Numbani',               'Western coast of Africa');
+select * from insertMap('MP09', 'Hollywood',             'Los Angeles, United States');
+select * from insertMap('MP10', 'Eichenwalde',           'Stuttgart, Germany');
+select * from insertMap('MP11', 'Nepal',                 'Nepal');
+select * from insertMap('MP12', 'Lijang Tower',          'China');
+select * from insertMap('MP13', 'Ilios',                 'Greece');
+select * from insertMap('MP14', 'Ecopoint: Antarctica',  'Antarctica');
+
+
 
 -- stored procedure used to insert heroes into their table
 create or replace function insertHero(char(4), char(15), char(15), char(20), int, int, int, char(20), role, char(10)) returns void
@@ -121,8 +272,6 @@ begin
 end;
 $$ 
 language plpgsql;
-
-
 
 
 -- 23 heroes total
@@ -151,13 +300,15 @@ select * from insertHero('H022', 'Symmetra',     'Satya',            'Vaswani', 
 select * from insertHero('H023', 'Zenyatta',     'Tekhartha',        'Zenyatta',            50,  150, 0,   'Omnic',      'Support', 'Healer');
 
 
+select * from teamsInMatches;
+select * from heroesInMatches;
+select * from matches;
 
-
-
-
-
-
-
+select * from officials;
+select * from people;
+select * from teams;
+select * from players order by playerID asc;
+select * from maps;
 select * from heroes;
 /*
 Model for functions
