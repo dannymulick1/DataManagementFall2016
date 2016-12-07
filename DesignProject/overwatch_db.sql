@@ -9,8 +9,6 @@
 
 --drop statements to assist in the building of the db
 
-drop table if exists abilities;
-drop table if exists weapons;
 drop table if exists heroesInMatches;
 drop table if exists heroes;
 drop table if exists teamsInMatches;
@@ -98,37 +96,6 @@ create table heroesInMatches(
 	primary key   (matchID, heroID)
 );
 
-create table weapons(
-	weaponID      char(4)    not null,
-	heroID        char(4)    not null references heroes(heroID),
-	weaponName    char(20)   ,
-	primaryFire   char(150)   not null,
-	secondaryFire char(150)   ,
-	damage        int        ,
-	DPS           int        ,
-	heal          int        ,
-	-- HPS is heal per second
-	HPS           int        ,
-	-- added heroId to primary key incase there is an instance of a hero
-	--  receives a weapon from a previous hero
-	primary key   (weaponID, heroID)
-);
-
-create table abilities(
-	abilityID     char(4)    not null,
-	heroID        char(4)    not null references heroes(heroID),
-	descr         char(50)   not null,
-	target        char(15)   not null,
-	cooldown      int        not null,
-	abilType      abilType   not null,
-	damage        int        ,
-	DPS           int        ,
-	heal          int        ,
-	HPS           int        ,
-	-- composite key made due to the possibility of two abilities maybe
-	--    being given to multiple heroes
-	primary key (abilityID, heroID)
-);
 
 
 -- stored procedure used to insert heroes into their table
@@ -155,62 +122,8 @@ end;
 $$ 
 language plpgsql;
 
--- stored proc for inputting weapons
-create or replace function insertWeapon(char(4), char(4), char(20), char(150), char(150), int, int, int, int) returns void
-as 
-$$
-declare
--- use underscore sign notation to declare variables, helps to recycle names and
---   make easier to remember
-   _weaponID             char(4)    :=$1;
-   _heroID               char(4)    :=$2;
-   _weaponName           char(20)   :=$3;
-   _primaryFire          char(150)   :=$4;
-   _secondaryFire        char(150)   :=$5;
-   _damage               int        :=$6;
-   _DPS                  int        :=$7;
-   _heal                 int        :=$8;
-   _HPS                  int        :=$9;
-begin
-   insert into weapons (weaponID, heroID, weaponName, primaryFire, secondaryFire, damage, DPS, heal, HPS)
-   values (_weaponID, _heroID, _weaponName, _primaryFire, _secondaryFire, _damage, _DPS, _heal, _HPS);
-end;
-$$ 
-language plpgsql;
 
 
---a lot of weapons
-
-select * from insertWeapon('W001','H001','Shuriken',            'Genji looses three deadly throwing stars in quick succession.',                                                                'Alternatively, he can throw three shuriken in a wider spread.',                     28,  84,  0, 0);
-select * from insertWeapon('W002','H002','Peacekeeper',         'McCree fires off a round from his trusty six-shooter.',                                                                        'McCree can fan the Peacekeeper’s hammer to swiftly unload the entire cylinder.',    70,  35,  0, 0);
-select * from insertWeapon('W003','H003','Rocket Launcher',     'Pharah’s primary weapon launches rockets that deal significant damage in a wide blast radius.',                                '',                                                                                  120, 110, 0, 0);
-select * from insertWeapon('W004','H004','Hellfire Shotguns',   'Reaper tears enemies apart with twin shotguns.',                                                                               '',                                                                                  140, 280, 0, 0);
-select * from insertWeapon('W005','H005','Heavy Pulse Rifle',   'Soldier: 76’s rifle remains particularly steady while unloading fully-automatic pulse fire.',                                  '',                                                                                  20,  200, 0, 0);
-select * from insertWeapon('W006','H006','Machine Pistol',      'Sombra’s fully-automatic machine pistol fires in a short-range spread.',                                                       '',                                                                                  8,   160, 0, 0);
-select * from insertWeapon('W007','H007','Pulse Pistols',       'Tracer rapid-fires both of her pistols.',                                                                                      '',                                                                                  12,  240, 0, 0);
-select * from insertWeapon('W008','H008','Configuration:Recon', 'In Recon mode, Bastion is fully mobile, outfitted with a submachine gun that fires steady bursts of bullets at medium range.', '',                                                                                  20,  160, 0, 0);
-select * from insertWeapon('W009','H009','Storm Bow',           'Hanzo nocks and fires an arrow at his target.', '', , , , );
-select * from insertWeapon('W010','H0','','', '', , , , );
-select * from insertWeapon('W011','H0','','', '', , , , );
-select * from insertWeapon('W012','H0','','', '', , , , );
-select * from insertWeapon('W013','H0','','', '', , , , );
-select * from insertWeapon('W014','H0','','', '', , , , );
-select * from insertWeapon('W015','H0','','', '', , , , );
-select * from insertWeapon('W016','H0','','', '', , , , );
-select * from insertWeapon('W017','H0','','', '', , , , );
-select * from insertWeapon('W018','H0','','', '', , , , );
-select * from insertWeapon('W019','H0','','', '', , , , );
-select * from insertWeapon('W020','H0','','', '', , , , );
-select * from insertWeapon('W021','H0','','', '', , , , );
-select * from insertWeapon('W022','H0','','', '', , , , );
-select * from insertWeapon('W023','H0','','', '', , , , );
-select * from insertWeapon('W024','H0','','', '', , , , );
-select * from insertWeapon('W025','H0','','', '', , , , );
-select * from insertWeapon('W026','H0','','', '', , , , );
-select * from insertWeapon('W027','H0','','', '', , , , );
-select * from insertWeapon('W028','H0','','', '', , , , );
-
-select * from weapons;
 
 -- 23 heroes total
 select * from insertHero('H001', 'Genji',        'Genji',            'Shimada',             200, 0,   0,   'Japanese',   'Offense', '');
