@@ -296,6 +296,55 @@ end;
 $$ 
 language plpgsql;
 
+-- Stored Proc to show the information of a team's players
+create or replace function playersOnATeam(char(4), refcursor) returns refcursor
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _teamID      char(4)    :=$1;
+   resultset    refcursor  :=$2;
+begin
+   open resultset for
+	select people.*, teams.*, players.hoursPlayed 
+	  from teams
+	 inner join players on teams.teamID = players.team
+	 inner join people  on players.playerID = people.pid
+	 where teams.teamID = _teamID;
+   return resultset;
+end;
+$$ 
+language plpgsql;
+
+/*select playersOnATeam('T002', 'results');
+fetch all from results;
+*/
+
+-- Stored Proc to show the information of an official for a match
+--	Say we need to get in touch with the official of a match to consult them or challenge the decision
+create or replace function officialInfo(char(4), refcursor) returns refcursor
+as 
+$$
+declare
+-- use underscore sign notation to declare variables, helps to recycle names and
+--   make easier to remember
+   _matchID       char(4)    :=$1;
+   resultset      refcursor  :=$2;
+begin
+   open resultset for
+	select m.officialID, o.judgelevel, p.*
+	  from matches m
+	 inner join officials o on o.officialID = m.officialID
+	 inner join people p    on p.pid        = m.officialID
+	 where m.matchID = _matchID;
+   return resultset;
+end;
+$$ 
+language plpgsql;
+
+select officialInfo('M007', 'results');
+fetch all from results;
 
 ------------------------------------------------------------------------------------------------------------------------------
 --
@@ -312,16 +361,11 @@ BEGIN
      if new.heroID in (select heroID from heroesInMatches as h
 			where h.matchID = new.matchID and h.teamNum = new.teamNum)
      then
+	raise exception 'Sorry, but your hero already exists in that match on that team. Please select another.';
 	rollback;
      else
 	return new;
      end if;
-
-exception when others then
-begin
-	result = "DBA Error. Your hero is already on that team";
-	return result;
-end;
 END;
 $$
 language plpgsql;
@@ -584,7 +628,7 @@ select mapid, mapname, location, count(*) from matches
  group by mapID
  order by count desc;
 
- --select * from MostPlayedMaps;
+-- select * from MostPlayedMaps;
 
 --showing most played heroes
 create view MostPlayedHeroes
@@ -597,17 +641,49 @@ select h1.heroID, h1.heroName, count(*) as totalMatches from matches as m
 
 --select * from MostPlayedHeroes;
 
-/* Example of the trigger. This leads to a failed insert because the hero already exists on that team during that match
-select * from insertHeroesIntoMatches('H008', 'M007', 1, 'P015');
 
---Example of the heroes in a match on a team
-select heroesInAMatch('M007', 1, 'results');
-fetch all from results;
-*/
---plans for stored procs
-/*
-wins of teams/wins of players
-most played heroes/maps
+----------------------------------------------------------------------------------------
+--
+--Roles and Security
+--
+----------------------------------------------------------------------------------------
+drop   role   if exists admin;
+drop   role   if exists Official;
+drop   role   if exists teamManager;
+create role   admin;
+create role   Official;
+create role   teamManager;
 
+-- admin has rights to everything
+grant select, insert, update, delete on people          to admin;
+grant select, insert, update, delete on players         to admin;
+grant select, insert, update, delete on officials       to admin;
+grant select, insert, update, delete on teams           to admin;
+grant select, insert, update, delete on maps            to admin;
+grant select, insert, update, delete on matches         to admin;
+grant select, insert, update, delete on teamsInMatches  to admin;
+grant select, insert, update, delete on heroes          to admin;
+grant select, insert, update, delete on heroesInMatches to admin;
 
-*/
+--teamManager has rights to their own team and the table to show they are in that match i.e. signing up for the match
+revoke all privileges on people          from teamManager;
+revoke all privileges on matches         from teamManager;
+revoke all privileges on officials       from teamManager;
+revoke all privileges on heroes          from teamManager;
+revoke all privileges on heroesInMatches from teamManager;
+revoke all privileges on maps            from teamManager;
+
+grant select, insert, update         on teams                    to teamManager;
+grant select, update                 on players                  to teamManager;
+grant select, insert, update         on teamsInMatches           to teamManager;
+
+--official is able to call a match, and view info on other officials
+revoke all privileges on people          from official;
+revoke all privileges on players         from official;
+revoke all privileges on teams           from official;
+revoke all privileges on teamsInMatches  from official;
+revoke all privileges on heroes          from official;
+revoke all privileges on maps            from official;
+revoke all privileges on heroesInMatches from official;
+
+grant select, insert, update on matches  to   official;
